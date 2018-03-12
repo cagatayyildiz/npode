@@ -3,7 +3,7 @@
 This repository contains a MATLAB implementation of npODE - a nonparametric model for learning unknown ordinary differential equations. The paper we describe the model will be available on [arxiv](https://arxiv.org) soon.
 
 ## MATLAB Code
-The implementation is in MATLAB and it does not depend on any software other than MATLAB's own optimization package. So, you should be able to run the code off-the-shelf.
+The implementation is in MATLAB and it does not depend on any software other than MATLAB's own optimization function ``fminunc`` and ODE solver ``ode45``. So, you should be able to run the code off-the-shelf.
 
 A good starting point is ``demo_ode``. This script first generates three trajectories from [Van der Pol oscillator](https://en.wikipedia.org/wiki/Van_der_Pol_oscillator) with different initial values, adds some noise and then fits npODE model. After fitting the model, you should see the below figure: 
 
