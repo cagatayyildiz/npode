@@ -7,7 +7,7 @@ model = 'vdp'; % Van der Pol oscillator as a toy model
 
 % fitting
 gp = npode_fit(t,Y); % fits npODE model and returns the learned parameters
-% lengthscale and ind. point grid parameters can optionally be set:
+% lengthscale and ind. points grid width can be set optionally:
 % gp = npode_fit(t,Y,'W',6,'ell',[2 2]); 
 
 % visualization
