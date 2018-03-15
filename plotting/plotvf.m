@@ -1,51 +1,21 @@
-% plot the ODE system vector field
+function [] = plotvf(gp,idx)
+% PLOTVF Plots the vector field and trajectories
 %
-% only for two-dimensional problems
-%
-% truef: plot also true function
-%
-function [] = plotvf(gp,x0,truef)
-
-if ~exist('x0','var')
-    x0 = [];
-end
-if ~exist('truef','var')
-    truef = [];
-end
+% INPUT
+%       gp  - npODE instance storing underlying parameters
+%       idx - the index of the input time series to be plotted
 
 if size(gp.X,2) ~= 2
     return;
 end
 
+if ~exist('idx','var')
+    idx = 1:gp.Nt;
+end
+
 qscale = 0.1;
 plot(nan);
 hold on;
-
-%% data points
-for i = 1:gp.Nt
-    dp = plot(gp.Y{i}(:,1), gp.Y{i}(:,2), strcat(gp.clrs(i),'o'), 'markersize',7, 'linewidth',2.0);
-%     plot(gp.Y{i}(:,1), gp.Y{i}(:,2), strcat(gp.clrs(i),':'), 'markersize',5, 'linewidth',1.0);
-end
-
-%% inducing vectors
-iv = quiver(gp.X(:,1),gp.X(:,2),qscale*gp.F(:,1),qscale*gp.F(:,2),'autoscale','off','color','k', 'linewidth',1.5);
-
-%% trajectories + initial values
-ts = cell(1,gp.Nt);
-for i = 1:gp.Nt
-    ts{i} = linspace(0.001,gp.t{i}(end),200)';
-end
-Xp = np_ode_sens(ts,gp.x0,gp.F,gp.X,gp.ell,gp.sf);
-for i = 1:gp.Nt
-    tr = plot(Xp{i}(:,1), Xp{i}(:,2), strcat(gp.clrs(i),'-'), 'linewidth', 1.5);
-    plot(gp.x0(i,1),gp.x0(i,2),'o','markersize',5,'linewidth',5,'Color', gp.clrs(i))
-%     plot(Xp{i}(:,1), Xp{i}(:,2), strcat(gp.clrs(i),'-'), 'markersize',5, 'linewidth',1.0);
-    if ~isempty(gp.x0_true)
-        [~,Xsol] = ode45(gp.ode_fun,ts{i},gp.x0_true(i,:));
-        plot(gp.x0_true(i,1),gp.x0_true(i,2),'*','linewidth',5,'Color', gp.clrs(i))
-        true_tr = plot(Xsol(:,1), Xsol(:,2),'--', 'linewidth',1.5, 'Color', gp.clrs(i));
-    end
-end
 
 %% vector field
 % on a grid
@@ -63,25 +33,54 @@ set(h, 'color',0.7*[1 1 1]);
 % quiverc(X1(:),X2(:),qscale*Fg(:,1),qscale*Fg(:,2));
 ip = plot(gp.X(:,1),gp.X(:,2),'ko', 'linewidth',1.5);
 
+%% inducing vectors
+iv = quiver(gp.X(:,1),gp.X(:,2),qscale*gp.F(:,1),qscale*gp.F(:,2),'autoscale','off','color','k', 'linewidth',1.5);
 
-%% error lines
-for i = 1:gp.Nt
-%     line([Xp{i}(:,1),gp.Y{i}(:,1)]',[Xp{i}(:,2),gp.Y{i}(:,2)]', 'Color', gp.clrs(i))
+%% data points
+for i = idx
+%     dp = plot(gp.Y{i}(:,1), gp.Y{i}(:,2), strcat('bo'), 'markersize',7, 'linewidth',2.0);
+    dp = plot(gp.Y{i}(:,1), gp.Y{i}(:,2), strcat(gp.clrs(i),'o'), 'markersize',7, 'linewidth',2.0);
+%     plot(gp.Y{i}(:,1), gp.Y{i}(:,2), strcat(gp.clrs(i),':'), 'markersize',5, 'linewidth',1.0);
 end
 
-%% true vf
-if ~isempty(truef)
-    [~,truex] = ode45(truef,ts,x0);
-    plot(truex(:,1), truex(:,2), 'r--', 'linewidth',2);
+%% trajectories + initial values
+ts = cell(1,length(idx));
+for i = idx
+    ts{i} = linspace(0.001,gp.t{i}(end),200)';
 end
+Xp = np_ode_mean_path(gp,ts,gp.x0);
+for i = idx
+    tr = plot(Xp{i}(:,1), Xp{i}(:,2), strcat(gp.clrs(i),'-'), 'linewidth', 1.5);
+    plot(gp.x0(i,1),gp.x0(i,2),'o','markersize',5,'linewidth',5,'Color', gp.clrs(i))
+%     plot(Xp{i}(:,1), Xp{i}(:,2), strcat(gp.clrs(i),'-'), 'markersize',5, 'linewidth',1.0);
+    if ~isempty(gp.x0_true) 
+        x0_true = gp.x0_true(i,:);
+    else
+        x0_true = gp.Y{i}(1,:);
+    end
+    if ~isempty(gp.x0_true) && ~isempty(gp.ode_fun)
+        [~,Xsol] = ode45(gp.ode_fun,ts{i},x0_true);
+        plot(gp.x0_true(i,1),gp.x0_true(i,2),'*','linewidth',5,'Color', gp.clrs(i))
+        true_tr = plot(Xsol(:,1), Xsol(:,2),'--', 'linewidth',1.5, 'Color', gp.clrs(i));
+    end
+end
+
 
 %% finish
 hold off;
 xlim([min(v1) max(v1)]);
 ylim([min(v2) max(v2)]);
-xlabel('Var 1');
-ylabel('Var 2');
-legend([dp,tr,true_tr,ip,iv],{"data points","est. traj","true traj","ind. points","ind. vectors"})
-title(sprintf('[logp %.2f] [sf %.2f] [ell %.3f %.3f] [sn %.3f %.3f]',np_ode_fg(gp),gp.sf,gp.ell(1), gp.ell(2), gp.sn(1), gp.sn(2)));
+xlabel('$x_1$', 'interpreter','latex');
+ylabel('$x_2$', 'interpreter','latex');
+if exist('true_tr','var')
+    legend([dp,tr,true_tr,ip,iv], ...
+    {"data points","estim. traj","true traj","ind. points","ind. vectors"})
+else
+    legend([dp,tr,ip,iv], ...
+    {"data points","estim. traj","ind. points","ind. vectors"})
+end
+title(sprintf('[logp %.2f] [sf %.2f] [ell %.3f %.3f] [sn %.3f %.3f]', ...
+    np_ode_fg(gp),gp.sf,gp.ell(1), gp.ell(2), gp.sn(1), gp.sn(2)));
+
 
 end

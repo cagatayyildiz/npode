@@ -1,107 +1,87 @@
+function [t,Y,D,x0,X,odefun] = gen_data(varargin)
+% GEN_DATA Generates noisy data using an oscillator
+% The function does not require any argument but see the documentation for
+% possible inputs
+%
+% INPUT 
+%       model   - data generating oscillator - 'vdp', 'fhn' or 'lv'
+%       Nt      - number of trajectories to be generated 
+%       Ny      - number of data points in each trajectory
+%       sn      - std of the white noise
+%       t       - the duration of each trajectory. could be an integer or a
+%                 vector of length Nt
+%       x0      - initial values of each trajectory - of size Nt x 2
+%
+% OUTPUT
+%       t       - time points in each trajectory - cell array of vectors
+%       Y       - noisy obs. - cell array of matrices, rows store obs
+%       D       - problem dimensionality - int
+%       x0      - initial values - Nt x 2 matrix
+%       X       - latent states - cell array of matrices, rows store states
+%       odefun  - ode function that has generated the data
 
-function [D,x0,t,X,Y,ode_fun] = gen_data(opts)
+% default settings
+opts.model  = 'vdp';
+opts.Nt     = 3;
+opts.Ny     = 25;
+opts.sn     = 0.1;
+opts.x0     = [];
+D           = 2;
 
-%% set defaults
-if ~isfield(opts,'Ny')
-    opts.Ny = 25;
+for v=1:length(varargin)/2
+    opts.(varargin{v*2-1}) = varargin{v*2};
 end
-if ~isfield(opts,'t_ends')
+
+%% set properties that are specific to each time series
+% t     - length of the trajectory
+% Ny    - number of data points in each trajectory
+% x0    - initial values
+if ~isfield(opts,'t')
     if strcmp(opts.model,'vdp')
-        opts.t_ends = 7;
+        opts.t = 7;
+        odefun = @(t,x) ode_vdp(t,x);
     elseif strcmp(opts.model,'fhn')
-        opts.t_ends = 10;
+        opts.t = 10;
+        odefun = @(t,x) ode_fhn(t,x);
     elseif strcmp(opts.model,'lv')
-        opts.t_ends = 5;
-    elseif strcmp(opts.model,'calcium')
-        opts.t_ends = 7;
+        odefun = @(t,x) ode_lv(t,x);
+        opts.t = 5;
     end
 end
-if ~isfield(opts,'t_starts')
-    opts.t_starts = 0.01;
+if ~isempty(opts.x0)
+    opts.Nt = size(opts.x0,1);
 end
-if ~isfield(opts,'draw')
-    opts.draw = false;
-end
-if ~isfield(opts,'t_slice')
-    opts.t_slice = 'uniform';
-end
-
 if isscalar(opts.Ny)
     opts.Ny = opts.Ny * ones(opts.Nt,1);
 end
-if isscalar(opts.t_ends)
-    opts.t_ends = opts.t_ends * ones(opts.Nt,1);
-end
-if isscalar(opts.t_ends)
-    opts.t_ends = opts.t_ends * ones(opts.Nt,1);
-end
-if isscalar(opts.t_starts)
-    opts.t_starts = opts.t_starts * ones(opts.Nt,1);
+if isscalar(opts.t)
+    opts.t = opts.t * ones(opts.Nt,1);
 end
 
-%% set ode function
-if strcmp(opts.model,'vdp')
-    ode_fun = @(t,x) ode_vdp(t,x);
-    D = 2;
-elseif strcmp(opts.model,'fhn')
-    ode_fun = @(t,x) ode_fhn(t,x);
-    D = 2;
-elseif strcmp(opts.model,'lv')
-    ode_fun = @(t,x) ode_lv(t,x);
-    D = 2;
-elseif strcmp(opts.model,'calcium')
-    ode_fun = @(t,x) ode_calcium(t,x);
-    D = 4;
+% initial points
+if ~isfield(opts,'x0') || isempty(opts.x0)
+    tmp = lhsdesign(opts.Nt,D);
+    if strcmp(opts.model,'vdp')
+        x0 = tmp .* [4,4] - [2,2];
+    elseif strcmp(opts.model,'fhn')
+        x0 = tmp .* [6,4] - [3,2];
+    elseif strcmp(opts.model,'lv')
+        x0 = tmp .* [4,4] + [6,1];
+    end
+else
+    x0 = opts.x0;
 end
-
 
 %% generate data
 X = cell(opts.Nt,1);
 Y = cell(opts.Nt,1);
 t = cell(opts.Nt,1);
 
-% initial points
-if ~isfield(opts,'x0')
-    tmp = lhsdesign(opts.Nt,D);
-    % plot(tmp(:,1), tmp(:,2), '*')
-    if strcmp(opts.model,'vdp')
-        x0 = tmp .* [4,4] - [2,2];
-    elseif strcmp(opts.model,'fhn')
-%         x0 = tmp .* [5,2.5] - [2,1];
-        x0 = tmp .* [6,4] - [3,2];
-    elseif strcmp(opts.model,'lv')
-        x0 = tmp .* [4,4] + [6,1];
-    elseif strcmp(opts.model,'calcium')
-        x0 = tmp .* [4,4] - [2,2];
-    end
-else
-    x0 = opts.x0;
-end
-
-% data itself
 for i = 1:opts.Nt
-    if strcmp(opts.t_slice,'uniform')
-        t{i} = linspace(opts.t_starts(i),opts.t_ends(i),opts.Ny(i))';
-    elseif strcmp(opts.t_slice,'random')
-        tmp = cumsum(rand(opts.Ny(i),1));
-        t{i} = opts.t_ends(i) * tmp ./ tmp(end,:);
-    end
-
-    [~,X_i] = ode45(ode_fun, t{i}, x0(i,:));
+    t{i} = linspace(1e-3,opts.t(i),opts.Ny(i))';
+    [~,X_i] = ode45(odefun, t{i}, x0(i,:));
     X{i} = X_i;
-    Y{i} = X_i + opts.sn_true*randn(size(X_i));
-end
-
-%% visualize
-if opts.draw
-    figure;
-    for i = 1:data_opts.Nt
-        subplot(ceil(sqrt(opts.Nt)),ceil(sqrt(opts.Nt),i))
-        plot(t{i},Y{i}(:,1))
-        hold on
-        plot(t{i},Y{i}(:,2))
-        hold off
-    end
+    Y{i} = X_i + opts.sn*randn(size(X_i));
 end
 
 end

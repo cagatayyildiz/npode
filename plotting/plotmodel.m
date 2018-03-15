@@ -1,42 +1,35 @@
-% plot the ODE system
+function [] = plotmodel(gp,t)
+% PLOTMODEL Plots the vector field and infered trajectories
 %
-function [] = plotmodel(gp,x0,truef,Nsamples)
-		
-    if ~exist('x0','var')
-		x0 = [];
+% If the time points are given as input, then the ODE system is evaluated
+% at these points. If there is a single trajectory to be predicted, t
+% should be a column vector. In case of multiple trajectories, t is a cell
+% array of column vectors.
+%
+% INPUT
+%       gp  - npODE instance storing underlying parameters
+%       t   - (optional) time points to be evaluated
+
+if exist('t','var') 
+    if ~iscell(t) && numel(t)==length(t) 
+        t = {t(:)};
     end
-    if ~exist('Nsamples','var')
-		Nsamples = 0;
+    gp.t = t;
+    gp.Nt = length(gp.t);
+end
+
+if gp.D == 2
+    subplot(2,2,[1 3]);
+    plotvf(gp,1);
+    subplot(2,2,2);
+    plotode(gp,1);
+    if gp.Nt > 1
+        subplot(2,2,4);
+        plotode(gp,2);
     end
-    if ~exist('truef','var')
-		truef = [];
-    end
-    
-    if gp.D == 2
-        if gp.Nt == 1
-    		subplot(121);
-            plotvf(gp,x0,truef);
-            subplot(122);
-            plotode(gp,1,x0,truef,Nsamples);
-        else
-            subplot(2,4,[1 2 5 6]);
-            plotvf(gp,x0,truef);
-            idx = [3,4,7,8];
-            for d=1:min(gp.Nt,4)
-                subplot(2,4,idx(d));
-                plotode(gp,d,x0,truef,Nsamples);
-            end
-        end
-        
-    else
-        drawnow;
-        fs = min(gp.Nt,4);
-        w = ceil(sqrt(fs-1))+1;
-        for d=1:fs
-            subplot(w,w,d);
-            plotode(gp,d,x0,truef,Nsamples);
-        end
-    end
+else
+    plotode(gp,1);
+end
     
 end
 

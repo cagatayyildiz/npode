@@ -1,89 +1,67 @@
-% plot the ODE system
+function [] = plotode(gp,s)
+% PLOTODE Plots the trajectories (true and inferred) and uncertainty
 %
-% truef: plot also true function
-%
-function [] = plotode(gp,s,x0,truef,Nsamples)
-	
-	if ~exist('truef','var')
-		truef = [];
-	end
-	if ~exist('Nsamples','var')
-		Nsamples = 0;
-	end
+% INPUT
+%       gp  - npODE instance storing underlying parameters
+%       s   - the index of the input time series to be plotted
 
-	% grid points
-	Ns = 200;
-    
-    t_ = [];
-    for i=1:gp.Nt, t_ = [t_;gp.t{i}]; end
-	ts = linspace(0.001,max(t_),Ns)';
-	D = gp.D;
-	
-	colors = ggplotcolors(D);
 
-	% integrate the system
-% 	[Xmu,Xcov,Xz] = num_int1(gp,x0,ts,Nsamples);
-% 	Xsd = zeros(Ns,D);
-% 	Xysd = zeros(Ns,D);
-% 	for i=1:D
-% 		Xsd(:,i) = sqrt(squeeze(Xcov(i,i,:)));
-% 		Xysd(:,i) = sqrt(squeeze(Xcov(i,i,:)) + gp.sn(i)^2);
-% 	end
-	
-    Xmu = np_ode_sens({ts},gp.Y{s}(1,:),gp.F,gp.X,gp.ell,gp.sf,gp.tol);
-    Xmu = Xmu{1};
-    
-	plot(nan);
-	hold on;
+% grid points
+D = gp.D;
+colors = ggplotcolors(D);
 
-	for i=1:D
-		plot(gp.t{s}, gp.Y{s}(:,i), '.', 'markersize',15, 'color', colors(i,:));
-	end
-	
-	if ~isempty(truef)
-		[ts,truex] = ode45(truef,ts,x0);
-		for i=1:D
-			plot(ts,truex(:,i), '-', 'color', colors(i,:), 'linewidth',2);
-		end
+plot(nan);
+hold on;
+
+for i=1:D
+    dp(i) = plot(gp.t{s}, gp.Y{s}(:,i), '.', 'markersize',15, 'color', colors(i,:));
+end
+
+if D == 2
+    Ns = 600;
+    ts = linspace(0.001,4*max(gp.t{s}),Ns)';
+else
+    Ns = 100;
+    ts = linspace(0.001,max(gp.t{s}),Ns)';
+end
+Xnpde = np_ode_mean_path(gp,{ts},gp.x0(s,:));
+Xnpde = Xnpde{1};
+for i=1:D
+    sig(i) = fill([ts; flip(ts)], [Xnpde(:,i)-2*gp.sn(i); flip(Xnpde(:,i)+2*gp.sn(i))], ...
+        colors(i,:),'facealpha',0.40,'edgecolor','none');
+end
+if ~isempty(gp.x0_true) 
+    x0 = gp.x0_true(s,:);
+else
+    x0 = gp.Y{s}(1,:);
+end
+if ~isempty(gp.ode_fun)
+    [~,Xmu] = ode45(gp.ode_fun,ts,x0);
+    for i=1:D
+        mp(i) = plot(ts,Xmu(:,i),'k-');
     end
+end
+
+hold off;
+ylim([min(gp.Y{s}(:))-1 max(gp.Y{s}(:))+1]);
+xlim([0 max(ts)]);
+xlabel('time');
+ylabel('x(t)');
+title(sprintf('States'))
+if D == 2
+    if s == 1
+        if exist('mp','var')
+        legend([mp(1),sig,dp],{"True $x(t)$","Estimated $x_1(t)+2\sigma_n$",...
+            "Estimated $x_2(t)+2\sigma_n$","Data $y_1$","Data $y_2$"},...
+            'interpreter','latex');
+        else
+        legend([sig,dp],{"Estimated $x_1(t)+2\sigma_n$",...
+            "Estimated $x_2(t)+2\sigma_n$","Data $y_1$","Data $y_2$"},...
+            'interpreter','latex');
+        end
+    end
+end
     
-	if Nsamples > 0
-		for i=1:D
-			plot(ts, squeeze(Xz(:,i,:)), '-', 'color', [1 1 1]*0.5, 'linewidth',0.5);
-		end
-	end
-	
-%	for i=1:D
-%		plot(ts, Xmu);
-%	end
-
-	for i=1:D
-%		fill([ts; flip(ts)], [Xmu(:,i)-2*Xsd(:,i); flip(Xmu(:,i)+2*Xsd(:,i))], colors(i,:),'facealpha',0.30,'edgecolor','none');
-%		fill([ts; flip(ts)], [Xmu(:,i)-2*Xysd(:,i); flip(Xmu(:,i)+2*Xysd(:,i))], colors(i,:),'facealpha',0.30,'edgecolor','none');
-		fill([ts; flip(ts)], [Xmu(:,i)-2*gp.sn(i); flip(Xmu(:,i)+2*gp.sn(i))], colors(i,:),'facealpha',0.40,'edgecolor','none');
-	end
-	
-	% plot force directions
-%	for i=1:D
-%		I = gp.F(:,i)>0;
-%		tp = gp.t(I);
-%		tn = gp.t(~I);
-%		xip = gp.X(I,i);
-%		xin = gp.X(~I,i);
-%		fip = (gp.F(I,i))*(1/5);
-%		fin = -abs(gp.F(~I,i))*(1/5);
-%		plot([tp tp]', [xip xip+fip]', 'k-', tp, xip+fip, 'k^');%, tp, xip, 'ko');
-%		plot([tn tn]', [xin xin+fin]', 'k-', tn, xin+fin, 'kv');%, tn, xin, 'ko');
-%	end
-	
-	hold off;
-	ylim([min(gp.Y{s}(:))-1 max(gp.Y{s}(:))+1]);
-	xlim([0 max(gp.t{s})]);
-	xlabel('time');
-	ylabel('x(t)');
-    title(sprintf('Trajectory-%d',s))
-
-% 	title(sprintf('[sf %.2f] [ell %.3f %.3f] [sn %.3f %.3f]',gp.sf,gp.ell(1), gp.ell(2), gp.sn(1), gp.sn(2)));
 end
 
 

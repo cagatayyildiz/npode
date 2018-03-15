@@ -1,16 +1,25 @@
 # npODE
 
-This repository contains a MATLAB implementation of npODE - a nonparametric model for learning unknown ordinary differential equations. The paper we describe the model will be available on [arxiv](https://arxiv.org) soon.
+This repository contains a MATLAB implementation of npODE - a nonparametric model for learning unknown ordinary differential equations. The paper we describe the model is on [arxiv](https://arxiv.org/abs/1803.04303).
 
 ## MATLAB Code
-The implementation is in MATLAB (2017b) and it does not depend on any software other than MATLAB's own optimization function ``fminunc`` and ODE solver ``ode45``. So, you should be able to run the code off-the-shelf.
+The implementation is in MATLAB (2017b) and it does not depend on any software other than MATLAB's own optimization function ``fminunc`` and ODE solver ``ode45``. So, you should be able to run the code off-the-shelf. 
 
-A good starting point is ``demo_ode``. This script first generates three trajectories from [Van der Pol oscillator](https://en.wikipedia.org/wiki/Van_der_Pol_oscillator) with different initial values, adds some noise and then fits npODE model. After fitting the model, you should see the below figure: 
+Fitting our model on some data is as simple as follows:
+```matlab
+gp = npode_fit(t,Y); % t and Y are the time points and the observations
+```
+
+It is also possible to predict the future:
+```matlab
+X = npode_predict(gp,ts,x0) % ts and x0 are the points and the initial value
+```
+
+To familarize yourself with the implementation, you may see ``demo``. This script first generates trajectories from [Van der Pol oscillator](https://en.wikipedia.org/wiki/Van_der_Pol_oscillator) with Gaussian noise, and then fits and visualizes npODE model. After fitting the model, you should see a figure similar to below: 
 
 ![VDP](vdp.png)
 
-The script allows fitting toy data generated from [Lotka–Volterra](https://en.wikipedia.org/wiki/Lotka%E2%80%93Volterra_equations) and [FitzHugh–Nagumo](https://en.wikipedia.org/wiki/FitzHugh%E2%80%93Nagumo_model) models. npODE model parameters are stored in ``ode/np_de_model`` object, you can see this file to familarize yourself with the model. The posterior and its gradients are computed in ``ode/np_ode_fg``.
-
+Perhaps the next file to investigate is ``ode/np_de_model``, where npODE model parameters are stored. The posterior and its gradients are computed in ``ode/np_ode_fg``.
 
 ### CMU Walking Data Experiments
 To evaluate the model on real data, we use a benchmark dataset of human motion capture data from the Carnegie Mellon University motion capture ([CMUmocap](http://mocap.cs.cmu.edu/)) database. We evaluate the method with two types of experiments: imputing missing values and forecasting future cycles. 

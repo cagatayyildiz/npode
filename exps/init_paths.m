@@ -24,10 +24,7 @@ addpath(fullfile(ROOT_NPODE,'utils'));
 
 %% paths needed by gpdm
 if exist(ROOT_GPDM,'dir')
-    addpath(fullfile(ROOT_GPDM,'src','gpdm'));
-    addpath(fullfile(ROOT_GPDM,'src','gplvm'));
-    addpath(fullfile(ROOT_GPDM,'src','netlab'));
-    addpath(fullfile(ROOT_GPDM,'src','util'));  
+	addpath(genpath(ROOT_GPDM))
 end
 
 end

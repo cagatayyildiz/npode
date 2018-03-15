@@ -12,7 +12,7 @@ if ~exist('fname','var') || isempty(fname)
     fname = '07_02.amc';
 end
 if ~exist('exp_type','var') || isempty(exp_type)
-    exp_type = 2;
+    exp_type = 1;
 end
 
 %% initialize paths for GPDM, NPODE and VGPLVM

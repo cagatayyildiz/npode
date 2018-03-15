@@ -42,7 +42,7 @@ classdef np_de_model
         ell_beta;  % vector
         
 		% others 
-        ode_fun
+        ode_model
 		kernel = 'gauss';
 		optpars = 'log_sf-log_sn-x0-Fw';
         Xlocs = 'rect';
@@ -58,6 +58,7 @@ classdef np_de_model
 	properties (Dependent)
 		F
 		ell,sf,sn
+        ode_fun
 	end
 	methods
 		% constructor
@@ -122,7 +123,7 @@ classdef np_de_model
         function gp = set_data(gp,t,Y)
 			gp.t = t;
 			gp.Y = Y;
-            gp.Nt = length(gp.Y); 
+            gp.Nt = length(gp.t); 
 			gp.D = size(gp.Y{1},2);
             gp.Ny = zeros(gp.Nt,1);
             for i = 1:gp.Nt
@@ -158,11 +159,6 @@ classdef np_de_model
                     baseException = MException(msgID,msg);
                     throw(baseException)
                 end
-            elseif strcmp(gp.Xlocs,'traj')
-                gp.Nf = gp.W;
-                idx = round(linspace(1,gp.Ny,gp.Nf));
-                gp.X = gp.Y{1}(idx,:);
-                gp.X = gp.X + randn(size(gp.X))*gp.Nf/500;
             elseif strcmp(gp.Xlocs,'rect') || strcmp(gp.Xlocs,'grid')
                 xs = zeros(gp.W,gp.D);
                 tmp = [];
@@ -234,7 +230,6 @@ classdef np_de_model
 		function sf  = get.sf(gp),  sf  = exp(gp.log_sf);  end
 		function sn  = get.sn(gp),  sn  = exp(gp.log_sn);  end
 		function ell = get.ell(gp), ell = exp(gp.log_ell); end
-		
         
 		function gp = set.sn(gp,sn)
             if sn < 0, warning('sn < 0'), end
@@ -250,6 +245,23 @@ classdef np_de_model
             gp.log_ell = log(ell); 
             gp = gp.update_kernel();
         end 
+        
+        function ode_fun = get.ode_fun(gp)
+            if ~isempty(gp.ode_model)
+                if strcmp(gp.ode_model,'vdp')
+                    ode_fun = @(t,x) ode_vdp(t,x);
+                elseif strcmp(gp.ode_model,'fhn')
+                    ode_fun = @(t,x) ode_fhn(t,x);
+                elseif strcmp(gp.ode_model,'lv')
+                    ode_fun = @(t,x) ode_lv(t,x);
+                end
+            else
+                ode_fun = [];
+            end
+        end
+        function gp = set.ode_fun(gp,model)
+            gp.ode_model = model;
+        end
         
         function str = to_str(gp)
             if gp.D == 2

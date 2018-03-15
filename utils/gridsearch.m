@@ -22,13 +22,13 @@ for i=1:length(sns)
             for k=1:length(scs)
                 vf_gp = estimate_init_ind_vec(vf_gp);
                 vf_gp.Fw(:,d) = scs(k) * vf_gp.Fw(:,d);
-%                 try
+                try
                     f_s = fpost(vf_gp);
                     if f_s > f_best
                         f_best = f_s;
                         gp_best = vf_gp;
                     end
-%                 end
+                end
             end
         end
     end
