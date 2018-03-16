@@ -12,7 +12,7 @@ gp = npode_fit(t,Y); % t and Y are the time points and the observations
 
 It is also possible to predict the future:
 ```matlab
-X = npode_predict(gp,ts,x0) % ts and x0 are the points and the initial value
+X = npode_predict(gp,ts,x0) % ts and x0 are the time points and the initial value
 ```
 
 To familarize yourself with the implementation, you may see ``demo``. This script first generates trajectories from [Van der Pol oscillator](https://en.wikipedia.org/wiki/Van_der_Pol_oscillator) with Gaussian noise, and then fits and visualizes npODE model. After fitting the model, you should see a figure similar to below: 
