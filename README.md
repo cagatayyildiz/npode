@@ -1,4 +1,4 @@
-## [This repository is overriden by a more recent TensotFlow implementation available [here](https://github.com/cagatayyildiz/npde/).]
+## [This repository is overriden by a more recent TensorFlow implementation available [here](https://github.com/cagatayyildiz/npde/).]
 
 # npODE
 
